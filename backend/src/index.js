@@ -15,7 +15,7 @@ const pool = new Pool({
 });
 
 app.get('/', (req, res) => {
-  res.json({ message: 'Hello from Project-Y Backend!' });
+  res.json({ message: 'Hello from Project-Y !' });
 });
 
 app.get('/db-check', async (req, res) => {

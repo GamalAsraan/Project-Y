@@ -1,1 +1,231 @@
-body { margin: 0; font-family: system-ui, -apple-system, sans-serif; }
+:root {
+    --bg-color: #000000;
+    --text-color: #e7e9ea;
+    --secondary-text: #71767b;
+    --accent-color: #1d9bf0;
+    --border-color: #2f3336;
+    --hover-bg: #181818;
+}
+
+body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    overflow-y: scroll;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+a {
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Layout */
+.layout {
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    max-width: 1300px;
+    margin: 0 auto;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 275px;
+    padding: 0 12px;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border-color);
+    height: 100vh;
+    position: sticky;
+    top: 0;
+}
+
+.logo {
+    font-size: 2rem;
+    padding: 15px;
+    font-weight: bold;
+}
+
+.sidebar nav {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.sidebar nav a {
+    font-size: 1.25rem;
+    padding: 12px 24px;
+    border-radius: 9999px;
+    width: fit-content;
+    transition: background-color 0.2s;
+}
+
+.sidebar nav a:hover {
+    background-color: var(--hover-bg);
+}
+
+.sidebar nav a.active {
+    font-weight: bold;
+}
+
+.tweet-btn {
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 9999px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-top: 20px;
+    cursor: pointer;
+    width: 90%;
+}
+
+/* Feed */
+.feed {
+    width: 600px;
+    border-right: 1px solid var(--border-color);
+}
+
+.feed-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.feed-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+/* Tweet */
+.tweet {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    gap: 12px;
+    transition: background-color 0.2s;
+}
+
+.tweet:hover {
+    background-color: rgba(255, 255, 255, 0.03);
+    cursor: pointer;
+}
+
+.avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: #333;
+    flex-shrink: 0;
+}
+
+.tweet-content {
+    flex: 1;
+}
+
+.tweet-header {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 4px;
+}
+
+.name {
+    font-weight: bold;
+}
+
+.handle {
+    color: var(--secondary-text);
+}
+
+/* Right Section */
+.right-section {
+    width: 350px;
+    padding: 12px 24px;
+    display: none;
+}
+
+@media (min-width: 1000px) {
+    .right-section {
+        display: block;
+    }
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 9999px;
+    border: none;
+    background-color: #202327;
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.trends {
+    background-color: #16181c;
+    border-radius: 16px;
+    margin-top: 16px;
+    padding: 16px;
+}
+
+.trends h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+}
+
+.trend-item {
+    padding: 12px 0;
+}
+
+.trend-item span {
+    font-size: 0.8rem;
+    color: var(--secondary-text);
+}
+
+.trend-item p {
+    margin: 2px 0;
+    font-weight: bold;
+}
+
+/* Skeleton Loader */
+.skeleton {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.skeleton-avatar {
+    background-color: #333;
+}
+
+.skeleton-text {
+    height: 12px;
+    background-color: #333;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    width: 100%;
+}
+
+.skeleton-text.short {
+    width: 30%;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}
