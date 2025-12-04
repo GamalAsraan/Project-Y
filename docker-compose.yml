@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: project_y
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - project-y-net
+
+  backend:
+    build: ./backend
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://user:password@db:5432/project_y
+      - PORT=3000
+    depends_on:
+      - db
+    networks:
+      - project-y-net
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3000
+    depends_on:
+      - backend
+    networks:
+      - project-y-net
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+  ml-service:
+    build: ./ml-service
+    ports:
+      - "8000:8000"
+    networks:
+      - project-y-net
+    volumes:
+      - ./ml-service:/app
+
+networks:
+  project-y-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
