@@ -231,13 +231,15 @@ a {
 }
 
 /* Tweet Form Styles */
+/* ===== DARK MODE TWEET FORM ===== */
 .tweet-form {
-  background: white;
+  background: #000000 !important;                    /* Changed from white to black */
   border-radius: 16px;
   padding: 16px;
   margin-bottom: 16px;
-  border: 1px solid #e1e8ed;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  border: 1px solid #2f3336 !important;            /* Dark gray border */
+  box-shadow: 0 2px 10px rgba(255, 255, 255, 0.05); /* White shadow for dark mode */
+  color: #e7e9ea !important;                       /* Light text color */
 }
 
 .tweet-form-header {
@@ -251,7 +253,7 @@ a {
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #657786;
+  color: #71767b !important;                       /* Dark mode gray */
   padding: 0;
   width: 32px;
   height: 32px;
@@ -262,7 +264,8 @@ a {
 }
 
 .close-btn:hover {
-  background-color: #f7f9fa;
+  background-color: #181919 !important;            /* Dark hover */
+  color: #e7e9ea !important;                       /* Light text on hover */
 }
 
 .tweet-input-area {
@@ -291,15 +294,17 @@ a {
   padding: 8px 0;
   outline: none;
   line-height: 1.5;
+  background: transparent !important;              /* Transparent background */
+  color: #e7e9ea !important;                       /* Light text */
 }
 
 .tweet-form textarea::placeholder {
-  color: #657786;
+  color: #71767b !important;                       /* Dark mode placeholder */
 }
 
 .char-count {
   text-align: right;
-  color: #657786;
+  color: #71767b !important;                       /* Dark mode gray */
   font-size: 14px;
   margin-top: 8px;
 }
@@ -310,12 +315,12 @@ a {
   align-items: center;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #e1e8ed;
+  border-top: 1px solid #2f3336 !important;        /* Dark border */
 }
 
 .tweet-submit-btn {
-  background-color: #1da1f2;
-  color: white;
+  background-color: #1d9bf0 !important;            /* Twitter blue */
+  color: white !important;
   border: none;
   border-radius: 9999px;
   padding: 10px 20px;
@@ -326,11 +331,11 @@ a {
 }
 
 .tweet-submit-btn:hover:not(:disabled) {
-  background-color: #1a8cd8;
+  background-color: #1a8cd8 !important;
 }
 
 .tweet-submit-btn:disabled {
-  background-color: #8ecdf7;
+  background-color: #0c4b78 !important;            /* Darker blue when disabled */
   cursor: not-allowed;
   opacity: 0.7;
 }
