@@ -17,7 +17,8 @@ function App() {
         { id: 1, content: "Just setting up my Project-Y!" },
         { id: 2, content: "This is starting to look like the real deal." },
         { id: 3, content: "Frontend revamp in progress... #coding #react" },
-        { id: 4, content: "Hello World from the new feed!" }
+        { id: 4, content: "Hello World from the new feed!" },
+        { id: 5, content: "now this cunt will try to make the tweet thing work"}
       ])
       setLoading(false)
     }, 2000)
