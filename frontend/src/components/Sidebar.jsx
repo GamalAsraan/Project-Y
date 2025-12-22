@@ -3,7 +3,7 @@ import React from 'react';
 const Sidebar = ({ onTweetClick }) => {  // ADD THE PROPS HERE
     return (
         <div className="sidebar">
-            <div className="logo">X</div>
+            <div className="logo">Y</div>
             <nav>
                 <a href="#" className="active">Home</a>
                 <a href="#">Explore</a>
