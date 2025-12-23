@@ -3,7 +3,6 @@
 Goal: Find the ContentBody and Username of posts created by people that a specific user (e.g., UserID = 1) is following.
 
 SQL:
-
 SELECT
     U.UsernameUnique,
     P.ContentBody
@@ -15,22 +14,12 @@ WHERE F.FollowerUserID = 1;
 Relational Algebra:
 πUsernameUnique,ContentBody​(σFollowerUserID=1​(Follows)⋈FollowingUserID=UserID​Posts⋈UserID=UserID​Users)
 
-Breakdown:
-
-    σ: Select rows from Follows where the follower is User 1.
-
-    ⋈: Join that result with Posts (matching the person being followed).
-
-    ⋈: Join that result with Users to get the username.
-
-    π: Project (display) only the Username and Content.
 
 2. Finding "Trending" Posts (Aggregation)
 
 Goal: List the PostID and LikeCount for all posts that have more than 100 likes, sorted by popularity.
 
 SQL:
-
 SELECT
     PostID,
     COUNT(*) AS LikeCount
@@ -41,18 +30,12 @@ HAVING COUNT(*) > 100;
 Relational Algebra (Extended):
 σLikeCount>100​(PostID​Gcount(∗)→LikeCount​(Post_Likes))
 
-Breakdown:
-
-    G: Group by PostID and Count the rows (naming the result LikeCount).
-
-    σ: Filter (Select) only the groups where LikeCount is greater than 100.
 
 3. User Profile & Bio (Basic Join)
 
 Goal: Get the DisplayName, Bio, and AvatarURL for a user with the email 'alice@example.com'.
 
 SQL:
-
 SELECT
     P.DisplayName,
     P.Bio,
@@ -64,20 +47,12 @@ WHERE U.Email = 'alice@example.com';
 Relational Algebra:
 πDisplayName,Bio,AvatarURL​(P⋈P.UserID=U.UserID​(σEmail=′alice@example.com′​(Users)))
 
-Breakdown:
-
-    σ: Find the specific row in Users matching the email.
-
-    ⋈: Join that single user record with the Profiles table.
-
-    π: Show the profile details.
 
 4. Content Discovery via Hashtags
 
 Goal: Find all posts that contain the hashtag "#Tech".
 
 SQL:
-
 SELECT P.ContentBody
 FROM Posts P
 JOIN Post_Hashtags PH ON P.PostID = PH.PostID
@@ -87,13 +62,6 @@ WHERE H.TagName = '#Tech';
 Relational Algebra:
 πContentBody​(Posts⋈(Post_Hashtags⋈σTagName=′#Tech′​(Hashtags)))
 
-Breakdown:
-
-    σ: Filter Hashtags to find the ID for "#Tech".
-
-    ⋈: Join with Post_Hashtags to find the links.
-
-    ⋈: Join with Posts to get the actual content.
 
 5. Moderation Queue (Set Logic)
 
