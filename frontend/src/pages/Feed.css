@@ -1,0 +1,47 @@
+.feed-container {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.feed-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.feed-header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  color: var(--text-color);
+}
+
+.feed-create-post-btn {
+  padding: 10px 20px;
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-weight: bold;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.feed-create-post-btn:hover {
+  background-color: #1a8cd8;
+}
+
+.feed-posts {
+  display: flex;
+  flex-direction: column;
+}
+
+.feed-loading,
+.feed-empty {
+  text-align: center;
+  padding: 40px;
+  color: var(--secondary-text);
+  font-size: 1.1rem;
+}
+

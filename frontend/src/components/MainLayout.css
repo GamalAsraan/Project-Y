@@ -1,0 +1,14 @@
+.main-layout {
+  min-height: 100vh;
+  background-color: var(--bg-color);
+}
+
+.main-content {
+  margin-top: 60px; /* TopBar height */
+  min-height: calc(100vh - 60px);
+  padding: 20px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
