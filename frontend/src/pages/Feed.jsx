@@ -1,12 +1,27 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import PostCard from '../components/PostCard';
 import CreatePost from '../components/CreatePost';
 import { usePosts } from '../context/PostsContext';
+import { useUser } from '../context/UserContext';
 import './Feed.css';
 
 const Feed = () => {
   const { posts, loading, addPost, likePost } = usePosts();
+  const { blockedUsers } = useUser();
   const [showCreatePost, setShowCreatePost] = useState(false);
+
+  // Filter out posts from blocked users
+  const filteredPosts = useMemo(() => {
+    if (!blockedUsers || blockedUsers.length === 0) return posts;
+    
+    return posts.filter(post => {
+      // Filter out posts by blocked users
+      if (blockedUsers.includes(post.user?.id)) return false;
+      // Filter out posts shared by blocked users
+      if (post.sharedBy && blockedUsers.includes(post.sharedBy.id)) return false;
+      return true;
+    });
+  }, [posts, blockedUsers]);
 
   const handleNewPost = (newPost) => {
     addPost(newPost);
@@ -56,10 +71,10 @@ const Feed = () => {
       )}
 
       <div className="feed-posts">
-        {posts.length === 0 ? (
+        {filteredPosts.length === 0 ? (
           <div className="feed-empty">No posts yet. Be the first to post!</div>
         ) : (
-          posts.map(post => (
+          filteredPosts.map(post => (
             <PostCard 
               key={post.id} 
               post={post}

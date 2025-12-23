@@ -1,24 +1,37 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import './TopBar.css';
 
 const TopBar = () => {
   const { currentUser } = useUser();
+  const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery('');
+    }
+  };
 
   return (
     <div className="topbar">
       <div className="topbar-content">
         <div className="topbar-logo">
-          <Link to="/">Project-Y</Link>
+          <Link to="/">Y</Link>
         </div>
         
-        <div className="topbar-search">
+        <form className="topbar-search" onSubmit={handleSearch}>
           <input 
             type="text" 
             placeholder="Search..." 
             className="search-input"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </div>
+        </form>
 
         <div className="topbar-actions">
           <Link to="/messages" className="topbar-icon" title="Messages">

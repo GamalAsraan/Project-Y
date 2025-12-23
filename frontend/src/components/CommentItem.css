@@ -9,12 +9,23 @@
   border-bottom: none;
 }
 
+.comment-avatar-link {
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
 .comment-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.comment-avatar:hover {
+  opacity: 0.8;
 }
 
 .comment-avatar img {
@@ -43,10 +54,22 @@
   margin-bottom: 4px;
 }
 
+.comment-username-link {
+  text-decoration: none;
+  display: inline-block;
+}
+
 .comment-username {
   font-weight: bold;
   font-size: 0.9rem;
   color: var(--text-color);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.comment-username-link:hover .comment-username {
+  color: var(--accent-color);
+  text-decoration: underline;
 }
 
 .comment-text {

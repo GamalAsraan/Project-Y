@@ -57,8 +57,16 @@
 .profile-name-section {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+  width: 100%;
+}
+
+.profile-action-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .profile-username {
@@ -203,6 +211,38 @@
   background-color: var(--hover-bg);
 }
 
+.profile-block-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: transparent;
+  border: 1px solid #ef4444;
+  border-radius: 20px;
+  color: #ef4444;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.profile-block-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.profile-block-btn.blocked {
+  border-color: var(--secondary-text);
+  color: var(--secondary-text);
+}
+
+.profile-block-btn.blocked:hover {
+  background-color: var(--hover-bg);
+  border-color: var(--text-color);
+  color: var(--text-color);
+}
+
 .profile-stats {
   display: flex;
   gap: 24px;
@@ -250,6 +290,21 @@
 
 .profile-create-post-btn:hover {
   background-color: #1a8cd8;
+}
+
+.profile-blocked-message {
+  background-color: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 40px;
+  text-align: center;
+  margin-top: 32px;
+}
+
+.profile-blocked-message p {
+  margin: 0;
+  color: var(--secondary-text);
+  font-size: 1rem;
 }
 
 .profile-posts {
