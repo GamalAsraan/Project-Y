@@ -15,10 +15,12 @@ Project-Y is a light clone of X (formerly Twitter), designed as a modern full-st
 ```
 .
 ├── backend/                # Node.js backend service
+│   ├── node_modules/
 │   ├── src/
 │   ├── Dockerfile
 │   └── package.json
-├── frontend/               # React frontend application
+├── frontend/                  # Node.js backend service
+│   ├── node_modules/             # React frontend application
 │   ├── public/
 │   ├── src/
 │   ├── Dockerfile
