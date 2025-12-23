@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { usePosts } from '../context/PostsContext';
 import CommentItem from './CommentItem';
@@ -104,17 +105,21 @@ const PostCard = ({ post, onLike, onShare }) => {
 
       {/* Header */}
       <div className="post-header">
-        <div className="post-avatar">
-          {post.user?.avatar ? (
-            <img src={post.user.avatar} alt={post.user.username} />
-          ) : (
-            <div className="post-avatar-placeholder">
-              {post.user?.username?.[0]?.toUpperCase() || '?'}
-            </div>
-          )}
-        </div>
+        <Link to={`/profile/${post.user?.id || 1}`} className="post-avatar-link">
+          <div className="post-avatar">
+            {post.user?.avatar ? (
+              <img src={post.user.avatar} alt={post.user.username} />
+            ) : (
+              <div className="post-avatar-placeholder">
+                {post.user?.username?.[0]?.toUpperCase() || '?'}
+              </div>
+            )}
+          </div>
+        </Link>
         <div className="post-user-info">
-          <span className="post-username">{post.user?.username || 'Anonymous'}</span>
+          <Link to={`/profile/${post.user?.id || 1}`} className="post-username-link">
+            <span className="post-username">{post.user?.username || 'Anonymous'}</span>
+          </Link>
           <span className="post-timestamp">
             {post.timestamp ? new Date(post.timestamp).toLocaleDateString() : 'Just now'}
           </span>
