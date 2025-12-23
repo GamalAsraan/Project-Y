@@ -19,8 +19,8 @@ Project-Y is a light clone of X (formerly Twitter), designed as a modern full-st
 │   ├── src/
 │   ├── Dockerfile
 │   └── package.json
-├── frontend/                  # Node.js backend service
-│   ├── node_modules/             # React frontend application
+├── frontend/               # React frontend application
+│   ├── node_modules/
 │   ├── public/
 │   ├── src/
 │   ├── Dockerfile
@@ -29,9 +29,12 @@ Project-Y is a light clone of X (formerly Twitter), designed as a modern full-st
 │   └── vite.config.js
 ├── ml-service/             # Python machine learning service
 │   ├── app/
+│   ├── sentiment_model/
 │   ├── Dockerfile
-│   └── requirements.txt
+│   ├── requirements.txt
+│   └── requirements-core.txt
 ├── docker-compose.yml      # Docker Compose orchestration
+├── test_integration.sh     # Integration test script
 └── README.md
 ```
 
@@ -51,4 +54,15 @@ This will start all services:
 - Backend: [http://localhost:3000](http://localhost:3000)
 - ML Service: [http://localhost:8000](http://localhost:8000)
 
+## 🧪 Testing
 
+To test the backend sentiment analysis integration:
+
+1.  Ensure the services are running.
+2.  Run the integration test script:
+
+    ```bash
+    ./test_integration.sh
+    ```
+
+    This script sends a sample request to the backend, which forwards it to the ML service, and prints the result.
