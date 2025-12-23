@@ -1,9 +1,9 @@
 import React from 'react';
 
-const Sidebar = () => {
+const Sidebar = ({ onTweetClick }) => {  // ADD THE PROPS HERE
     return (
         <div className="sidebar">
-            <div className="logo">X</div>
+            <div className="logo">Y</div>
             <nav>
                 <a href="#" className="active">Home</a>
                 <a href="#">Explore</a>
@@ -11,7 +11,13 @@ const Sidebar = () => {
                 <a href="#">Messages</a>
                 <a href="#">Profile</a>
             </nav>
-            <button className="tweet-btn">Tweet</button>
+            {/* ADD onClick HANDLER */}
+            <button 
+              className="tweet-btn" 
+              onClick={onTweetClick}
+            >
+                Tweet
+            </button>
         </div>
     );
 };
