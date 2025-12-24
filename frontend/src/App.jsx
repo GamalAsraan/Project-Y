@@ -7,6 +7,7 @@ import Messages from './pages/Messages';
 import Notifications from './pages/Notifications';
 import Profile from './pages/Profile';
 import Auth from './pages/Auth';
+import Setup from './pages/Setup';
 import Search from './pages/Search';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/profile/:userId" element={<Profile />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/setup" element={<Setup />} />
               <Route path="/search" element={<Search />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

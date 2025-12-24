@@ -167,7 +167,47 @@ CREATE INDEX idx_follows_following ON follows(following_id);
 CREATE INDEX idx_likes_post_id ON likes(post_id);
 CREATE INDEX idx_comments_post_id ON comments(post_id);
 CREATE INDEX idx_notifications_recipient ON notifications(recipient_id);
-CREATE INDEX idx_messages_conversation ON messages(conversation_id);
+CREATE INDEX idx_messages_conversation ON messages(conversation_id, created_at);
+
+-- AUTOMATION: Functions to auto-update counters
+CREATE OR REPLACE FUNCTION update_post_counters() RETURNS TRIGGER AS $$
+BEGIN
+    IF (TG_OP = 'INSERT') THEN
+        IF (TG_TABLE_NAME = 'likes') THEN
+            UPDATE posts SET likes_count = likes_count + 1 WHERE id = NEW.post_id;
+        ELSIF (TG_TABLE_NAME = 'comments') THEN
+            UPDATE posts SET comments_count = comments_count + 1 WHERE id = NEW.post_id;
+        ELSIF (TG_TABLE_NAME = 'posts' AND NEW.original_post_id IS NOT NULL) THEN
+            UPDATE posts SET reposts_count = reposts_count + 1 WHERE id = NEW.original_post_id;
+        END IF;
+    ELSIF (TG_OP = 'DELETE') THEN
+        IF (TG_TABLE_NAME = 'likes') THEN
+            UPDATE posts SET likes_count = likes_count - 1 WHERE id = OLD.post_id;
+        ELSIF (TG_TABLE_NAME = 'comments') THEN
+            UPDATE posts SET comments_count = comments_count - 1 WHERE id = OLD.post_id;
+        ELSIF (TG_TABLE_NAME = 'posts' AND OLD.original_post_id IS NOT NULL) THEN
+            UPDATE posts SET reposts_count = reposts_count - 1 WHERE id = OLD.original_post_id;
+        END IF;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- BIND TRIGGERS
+-- Auto-count Likes
+CREATE TRIGGER trigger_update_likes_count
+AFTER INSERT OR DELETE ON likes
+FOR EACH ROW EXECUTE FUNCTION update_post_counters();
+
+-- Auto-count Comments
+CREATE TRIGGER trigger_update_comments_count
+AFTER INSERT OR DELETE ON comments
+FOR EACH ROW EXECUTE FUNCTION update_post_counters();
+
+-- Auto-count Reposts
+CREATE TRIGGER trigger_update_reposts_count
+AFTER INSERT OR DELETE ON posts
+FOR EACH ROW EXECUTE FUNCTION update_post_counters();
 
 -- FULL TEXT SEARCH INDEXES (GIN)
 -- Index for searching posts by content
