@@ -4,7 +4,7 @@ Project-Y is a light clone of X (formerly Twitter), designed as a modern full-st
 
 ## 🚀 Features
 
-- **Frontend**: A responsive React application built with Vite for a fast and interactive user experience.
+- **Frontend**: A responsive React application built with **Vite** for a fast and interactive user experience. It utilizes **React Router** for seamless client-side navigation.
 - **Backend**: A robust Node.js server handling API requests and business logic.
 - **ML Service**: A dedicated Python service for machine learning tasks.
 - **Database**: PostgreSQL for reliable data persistence.
