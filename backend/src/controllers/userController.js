@@ -130,4 +130,8 @@ const followUser = async (req, res) => {
     }
 };
 
-module.exports = { getProfile, updateProfile, followUser };
+module.exports = {
+    getProfile,
+    updateProfile,
+    followUser
+};

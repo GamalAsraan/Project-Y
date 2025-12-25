@@ -1,10 +1,19 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const UserContext = createContext();
 
 export const UserProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [blockedUsers, setBlockedUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const initAuth = async () => {
+      await checkAuth();
+      setLoading(false);
+    };
+    initAuth();
+  }, []);
 
   const login = (userData, token) => {
     setCurrentUser(userData);
@@ -90,7 +99,8 @@ export const UserProvider = ({ children }) => {
       unblockUser,
       isUserBlocked,
       blockedUsers,
-      checkAuth
+      checkAuth,
+      loading
     }}>
       {children}
     </UserContext.Provider>

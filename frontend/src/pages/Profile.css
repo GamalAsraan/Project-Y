@@ -322,3 +322,86 @@
   border-radius: 12px;
 }
 
+.profile-follow-btn,
+.profile-message-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.profile-follow-btn {
+  background-color: var(--text-color);
+  color: var(--bg-color);
+  border: 1px solid var(--text-color);
+}
+
+.profile-follow-btn:hover {
+  opacity: 0.9;
+}
+
+.profile-follow-btn.following {
+  background-color: transparent;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.profile-follow-btn.following:hover {
+  background-color: rgba(255, 0, 0, 0.1);
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.profile-follow-btn.following:hover::after {
+  content: "Unfollow";
+  position: absolute;
+  background-color: transparent;
+  color: #ef4444;
+}
+
+.profile-follow-btn.following:hover span {
+  display: none;
+}
+
+.profile-message-btn {
+  background-color: transparent;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.profile-message-btn:hover {
+  background-color: var(--hover-bg);
+}
+
+.profile-logout-fab {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  z-index: 100;
+}
+
+.profile-logout-fab:hover {
+  transform: scale(1.05);
+  background-color: #dc2626;
+}
+
+.profile-logout-fab:active {
+  transform: scale(0.95);
+}

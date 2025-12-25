@@ -1,24 +1,42 @@
-import { API_URL } from '../config/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
-export async function getPosts() {
-  const res = await fetch(`${API_URL}/posts`);
-  return res.json();
-}
-export async function createPost(text) {
+export const getPosts = async () => {
   const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/posts`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  if (!response.ok) throw new Error('Failed to fetch posts');
+  return response.json();
+};
 
-  const res = await fetch(`${API_URL}/posts`, {
+export const getUserPosts = async (userId) => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/posts/user/${userId}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    }
+  });
+  if (!response.ok) throw new Error('Failed to fetch user posts');
+  return response.json();
+};
+
+export const createPost = async (text, image) => {
+  const token = localStorage.getItem('token');
+  const response = await fetch(`${API_URL}/posts`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      'Authorization': `Bearer ${token}`
     },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ content: text, media_url: image })
   });
 
-  if (!res.ok) {
-    throw new Error('Failed to create post');
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to create post');
   }
 
-  return res.json();
-}
+  return response.json();
+};

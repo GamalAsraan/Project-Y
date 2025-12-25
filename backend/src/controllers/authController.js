@@ -5,11 +5,11 @@ const { pool } = require('../db');
 const register = async (req, res) => {
     const { email, password, username } = req.body;
     const client = await pool.connect();
-    
+
     try {
         // BEGIN TRANSACTION
         await client.query('BEGIN');
-        
+
         const hashedPassword = await bcrypt.hash(password, 10);
         // Default StatusID = 1 (Active)
         const result = await client.query(
@@ -54,7 +54,7 @@ const register = async (req, res) => {
         // ROLLBACK TRANSACTION on error
         await client.query('ROLLBACK');
         console.error('Registration error:', error);
-        
+
         // Handle specific database errors
         if (error.code === '23505') { // Unique constraint violation
             if (error.constraint === 'users_email_key') {
@@ -64,7 +64,7 @@ const register = async (req, res) => {
                 return res.status(400).json({ error: 'Username already taken' });
             }
         }
-        
+
         res.status(500).json({ error: 'Registration failed' });
     } finally {
         client.release();
@@ -118,18 +118,24 @@ const logout = (req, res) => {
 };
 
 const getMe = async (req, res) => {
-    if (!req.session.user) {
-        return res.status(401).json({ error: 'Not authenticated' });
+    // req.user is set by the protect middleware (JWT)
+    if (!req.user) {
+        // Fallback to session if available (hybrid approach)
+        if (req.session && req.session.user) {
+            req.user = req.session.user;
+        } else {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
     }
 
     // Optional: Refresh data from DB
-    // For now, return session data + onboarding status
+    // For now, return user data + onboarding status
     try {
-        const interestCheck = await pool.query('SELECT COUNT(*) FROM User_Interests WHERE UserID = $1', [req.session.user.id]);
+        const interestCheck = await pool.query('SELECT COUNT(*) FROM User_Interests WHERE UserID = $1', [req.user.id || req.user.userId]);
         const hasCompletedOnboarding = parseInt(interestCheck.rows[0].count) > 0;
 
         res.json({
-            user: req.session.user,
+            user: req.user,
             hasCompletedOnboarding
         });
     } catch (error) {
@@ -161,7 +167,7 @@ const saveOnboarding = async (req, res) => {
     }
 
     const client = await pool.connect();
-    
+
     try {
         // BEGIN TRANSACTION
         await client.query('BEGIN');

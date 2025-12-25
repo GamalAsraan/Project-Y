@@ -3,19 +3,19 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const postController = require('../controllers/postController');
 const searchController = require('../controllers/searchController');
-const { authenticateToken } = require('../middleware/authMiddleware');
+const protect = require('../middleware/auth.middleware');
 
 // Profile Routes
-router.get('/profile/:userId', authenticateToken, userController.getProfile);
-router.put('/profile', authenticateToken, userController.updateProfile);
-router.post('/users/:userId/follow', authenticateToken, userController.followUser);
+router.get('/profile/:userId', protect, userController.getProfile);
+router.put('/profile', protect, userController.updateProfile);
+router.post('/users/:userId/follow', protect, userController.followUser);
 
 // Search Route
-router.get('/search', authenticateToken, searchController.search);
+router.get('/search', protect, searchController.search);
 
 // Post Routes
-router.post('/posts', authenticateToken, postController.createPost);
-router.post('/posts/:postId/like', authenticateToken, postController.likePost);
-router.post('/posts/:postId/comment', authenticateToken, postController.commentPost);
+router.post('/posts', protect, postController.createPost);
+router.post('/posts/:postId/like', protect, postController.likePost);
+router.post('/posts/:postId/comment', protect, postController.commentPost);
 
 module.exports = router;
