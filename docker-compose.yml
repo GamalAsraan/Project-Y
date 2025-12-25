@@ -1,59 +1,40 @@
-version: '3.8'
 services:
-  db:
-    image: postgres:15-alpine
+  postgres:
+    image: postgres:15
+    container_name: projecty-postgres
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: project_y
+      POSTGRES_USER: projecty
+      POSTGRES_PASSWORD: projecty
+      POSTGRES_DB: projecty_db
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - project-y-net
+      - pgdata:/var/lib/postgresql/data
 
   backend:
     build: ./backend
+    container_name: projecty-backend
     ports:
       - "3000:3000"
-    environment:
-      - DATABASE_URL=postgresql://user:password@db:5432/project_y
-      - PORT=3000
     depends_on:
-      - db
-    networks:
-      - project-y-net
+      - postgres
+    environment:
+      DATABASE_URL: postgres://projecty:projecty@postgres:5432/projecty_db
+      JWT_SECRET: supersecret
     volumes:
       - ./backend:/app
       - /app/node_modules
 
   frontend:
     build: ./frontend
+    container_name: projecty-frontend
     ports:
       - "5173:5173"
-    environment:
-      - VITE_API_URL=http://localhost:3000
     depends_on:
       - backend
-    networks:
-      - project-y-net
     volumes:
       - ./frontend:/app
       - /app/node_modules
 
-  ml-service:
-    build: ./ml-service
-    ports:
-      - "8000:8000"
-    networks:
-      - project-y-net
-    volumes:
-      - ./ml-service:/app
-
-networks:
-  project-y-net:
-    driver: bridge
-
 volumes:
-  postgres_data:
+  pgdata:

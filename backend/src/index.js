@@ -1,63 +1,100 @@
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
+const session = require('express-session');
+const pgSession = require('connect-pg-simple')(session);
+const http = require('http');
+const { Server } = require('socket.io');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: ['http://localhost:5173', 'http://localhost'],
+        methods: ['GET', 'POST'],
+        credentials: true
+    }
+});
+const port = process.env.PORT || 3001;
 
-app.use(cors());
-app.use(express.json());
-
-// Database connection
+// Database Connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
+// Middleware
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://localhost'], // Allow both local dev and Docker
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Session Configuration
+app.use(session({
+  store: new pgSession({
+    pool: pool,                // Connection pool
+    tableName: 'session'       // Use another table-name than the default "session" one
+    // Insert connect-pg-simple options here
+  }),
+  secret: process.env.SESSION_SECRET || 'supersecretkey',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    secure: false, // Set to true if using https
+    httpOnly: true,
+    sameSite: 'lax' // Important for localhost
+  }
+}));
+
+// Test DB Connection
+pool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('Error connecting to the database:', err);
+  } else {
+    console.log('Connected to Database at:', res.rows[0].now);
+  }
+});
+
+// Routes
+const authRoutes = require('./routes/authRoutes');
+const feedRoutes = require('./routes/feedRoutes');
+const apiRoutes = require('./routes/apiRoutes');
+const postController = require('./controllers/postController');
+
+// Set socket.io instance in postController
+postController.setSocketIO(io);
+
+app.use('/auth', authRoutes);
+app.use('/feed', feedRoutes);
+app.use('/api', apiRoutes);
+
 app.get('/', (req, res) => {
-  res.json({ message: 'Hello from Project-Y !' });
+  res.send('Project-Y Backend is running!');
 });
 
-app.get('/db-check', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT NOW()');
-    res.json({ message: 'Database connected', time: result.rows[0].now });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Database connection failed' });
-  }
-});
+// Socket.io Connection Handling
+io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
 
-// ML Service Integration
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://ml-service:8000';
-
-app.post('/analyze-sentiment', async (req, res) => {
-  const { text } = req.body;
-  if (!text) {
-    return res.status(400).json({ error: 'Text is required' });
-  }
-
-  try {
-    console.log(`Sending text to ML service at ${ML_SERVICE_URL}/predict...`);
-    const response = await fetch(`${ML_SERVICE_URL}/predict`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text }),
+    // Join user-specific room for notifications
+    socket.on('join_user_room', (userId) => {
+        socket.join(`user_${userId}`);
+        console.log(`User ${userId} joined their notification room`);
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`ML Service error: ${response.status} ${errorText}`);
-    }
-
-    const data = await response.json();
-    res.json(data);
-  } catch (error) {
-    console.error('Sentiment analysis failed:', error);
-    res.status(500).json({ error: 'Failed to analyze sentiment', details: error.message });
-  }
+    socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.id);
+    });
 });
 
-app.listen(port, () => {
+// Start Server
+server.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
+module.exports = { app, io };

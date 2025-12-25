@@ -80,21 +80,11 @@ const CreatePost = ({ onSubmit, onCancel }) => {
       imageData = imageUrl.trim();
     }
 
-    const newPost = {
-      text: text.trim(),
-      image: imageData,
-      user: {
-        id: currentUser.id,
-        username: currentUser.username,
-        avatar: currentUser.avatar
-      },
-      timestamp: new Date().toISOString(),
-      likes: 0,
-      liked: false,
-      comments: []
-    };
+    onSubmit({
+        text: text.trim(),
+        image: imageData,
+     });
 
-    onSubmit(newPost);
     setText('');
     setImageUrl('');
     setUploadedImage(null);

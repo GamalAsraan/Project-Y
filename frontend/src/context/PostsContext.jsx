@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { getPosts, createPost } from '../services/posts';
 
 const PostsContext = createContext();
 
@@ -154,13 +155,16 @@ export const PostsProvider = ({ children }) => {
     fetchPosts();
   }, []);
 
-  const addPost = (newPost) => {
-    const postWithId = {
-      ...newPost,
-      id: posts.length > 0 ? Math.max(...posts.map(p => p.id)) + 1 : 1
-    };
-    setPosts([postWithId, ...posts]);
-  };
+  const addPost = async (postData) => {
+  try {
+    const newPost = await createPost(postData.text, postData.image);
+    setPosts((prev) => [newPost, ...prev]);
+  } catch (err) {
+    console.error(err);
+    alert('Error creating post');
+  }
+};
+
 
   const sharePost = (originalPost, sharingUser) => {
     // Create a shared post (repost) - keep original post data but mark as shared
