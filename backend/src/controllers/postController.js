@@ -16,7 +16,7 @@ const createPost = async (req, res) => {
     }
 
     const client = await pool.connect();
-    
+
     try {
         await client.query('BEGIN');
 
@@ -25,7 +25,7 @@ const createPost = async (req, res) => {
             'INSERT INTO Posts (UserID, ContentBody) VALUES ($1, $2) RETURNING PostID, CreatedAt',
             [userId, content || null]
         );
-        
+
         const postId = postResult.rows[0].postid;
 
         // Initialize Post_Counters (trigger should handle this, but ensure it exists)
@@ -83,7 +83,7 @@ const createPost = async (req, res) => {
 
         await client.query('COMMIT');
 
-        res.status(201).json({ 
+        res.status(201).json({
             postId,
             originalPostId: original_post_id || null,
             isRepost: !!original_post_id
@@ -102,23 +102,23 @@ const likePost = async (req, res) => {
     const { postId } = req.params;
 
     const client = await pool.connect();
-    
+
     try {
         await client.query('BEGIN');
 
         // Check if already liked
         const check = await client.query(
-            'SELECT * FROM Post_Likes WHERE UserID = $1 AND PostID = $2', 
+            'SELECT * FROM Post_Likes WHERE UserID = $1 AND PostID = $2',
             [userId, postId]
         );
 
         if (check.rows.length > 0) {
             // Unlike
             await client.query(
-                'DELETE FROM Post_Likes WHERE UserID = $1 AND PostID = $2', 
+                'DELETE FROM Post_Likes WHERE UserID = $1 AND PostID = $2',
                 [userId, postId]
             );
-            
+
             // Counter update is handled by database trigger, but we update manually as backup
             await client.query(
                 'UPDATE Post_Counters SET LikeCount = GREATEST(LikeCount - 1, 0) WHERE PostID = $1',
@@ -180,12 +180,12 @@ const likePost = async (req, res) => {
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Like post error:', error);
-        
+
         // Handle duplicate key error gracefully
         if (error.code === '23505') {
             return res.status(409).json({ error: 'Already liked this post', liked: true });
         }
-        
+
         res.status(500).json({ error: 'Failed to toggle like' });
     } finally {
         client.release();
@@ -209,4 +209,46 @@ const commentPost = async (req, res) => {
     }
 };
 
-module.exports = { createPost, likePost, commentPost, setSocketIO };
+const getPosts = async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT p.PostID, p.ContentBody, p.CreatedAt, 
+                   u.UserID, u.UsernameUnique,
+                   pr.DisplayName, pr.AvatarURL,
+                   pc.LikeCount, pc.RepostCount, pc.CommentCount
+            FROM Posts p
+            JOIN Users u ON p.UserID = u.UserID
+            LEFT JOIN Profiles pr ON u.UserID = pr.UserID
+            LEFT JOIN Post_Counters pc ON p.PostID = pc.PostID
+            ORDER BY p.CreatedAt DESC
+        `);
+        res.json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch posts' });
+    }
+};
+
+const getUserPosts = async (req, res) => {
+    const { userId } = req.params;
+    try {
+        const result = await pool.query(`
+            SELECT p.PostID, p.ContentBody, p.CreatedAt, 
+                   u.UserID, u.UsernameUnique,
+                   pr.DisplayName, pr.AvatarURL,
+                   pc.LikeCount, pc.RepostCount, pc.CommentCount
+            FROM Posts p
+            JOIN Users u ON p.UserID = u.UserID
+            LEFT JOIN Profiles pr ON u.UserID = pr.UserID
+            LEFT JOIN Post_Counters pc ON p.PostID = pc.PostID
+            WHERE p.UserID = $1
+            ORDER BY p.CreatedAt DESC
+        `, [userId]);
+        res.json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Failed to fetch user posts' });
+    }
+};
+
+module.exports = { createPost, likePost, commentPost, setSocketIO, getPosts, getUserPosts };

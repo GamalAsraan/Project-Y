@@ -6,10 +6,11 @@ services:
       POSTGRES_USER: projecty
       POSTGRES_PASSWORD: projecty
       POSTGRES_DB: projecty_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U projecty -d projecty_db" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: ./backend
@@ -17,13 +18,20 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgres://projecty:projecty@postgres:5432/projecty_db
       JWT_SECRET: supersecret
     volumes:
       - ./backend:/app
       - /app/node_modules
+    restart: always
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   frontend:
     build: ./frontend
@@ -31,7 +39,10 @@ services:
     ports:
       - "5173:5173"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    environment:
+      - VITE_API_URL=http://localhost:3000
     volumes:
       - ./frontend:/app
       - /app/node_modules

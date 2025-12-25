@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
+import { login as loginApi, register as registerApi } from '../services/auth';
 import './Auth.css';
 
 const Auth = () => {
@@ -11,6 +12,8 @@ const Auth = () => {
     password: '',
     confirmPassword: ''
   });
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useUser();
   const navigate = useNavigate();
 
@@ -19,37 +22,60 @@ const Auth = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
+    // Clear error when user starts typing
+    if (error) setError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // TODO: Replace with actual API call
-    // For now, just simulate login
-    if (isSignup) {
-      if (formData.password !== formData.confirmPassword) {
-        alert('Passwords do not match!');
-        return;
+    setError('');
+    setIsLoading(true);
+
+    try {
+      if (isSignup) {
+        // Validate passwords match
+        if (formData.password !== formData.confirmPassword) {
+          setError('Passwords do not match!');
+          setIsLoading(false);
+          return;
+        }
+
+        // Call register API
+        const response = await registerApi(
+          formData.username,
+          formData.email,
+          formData.password
+        );
+
+        // Store token and login
+        localStorage.setItem('token', response.token);
+        login(response.user, response.token);
+
+        // Redirect based on onboarding status
+        if (response.hasCompletedOnboarding) {
+          navigate('/');
+        } else {
+          navigate('/onboarding');
+        }
+      } else {
+        // Call login API
+        const response = await loginApi(formData.email, formData.password);
+
+        // Store token and login
+        localStorage.setItem('token', response.token);
+        login(response.user, response.token);
+
+        // Redirect based on onboarding status
+        if (response.hasCompletedOnboarding) {
+          navigate('/');
+        } else {
+          navigate('/onboarding');
+        }
       }
-      // Simulate signup
-      const newUser = {
-        id: Date.now(),
-        username: formData.username,
-        email: formData.email,
-        avatar: null
-      };
-      login(newUser);
-      navigate('/');
-    } else {
-      // Simulate login
-      const user = {
-        id: 1,
-        username: formData.username || 'johndoe',
-        email: formData.email || 'john@example.com',
-        avatar: null
-      };
-      login(user);
-      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Authentication failed. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -61,34 +87,38 @@ const Auth = () => {
           <p>{isSignup ? 'Create your account' : 'Welcome back!'}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="auth-form">
-          <div className="form-group">
-            <label htmlFor="username">Username</label>
-            <input
-              type="text"
-              id="username"
-              name="username"
-              value={formData.username}
-              onChange={handleChange}
-              required
-              placeholder="Enter your username"
-            />
-          </div>
+        {error && <div className="auth-error">{error}</div>}
 
+        <form onSubmit={handleSubmit} className="auth-form">
           {isSignup && (
             <div className="form-group">
-              <label htmlFor="email">Email</label>
+              <label htmlFor="username">Username</label>
               <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
+                type="text"
+                id="username"
+                name="username"
+                value={formData.username}
                 onChange={handleChange}
                 required
-                placeholder="Enter your email"
+                placeholder="Enter your username"
+                disabled={isLoading}
               />
             </div>
           )}
+
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              placeholder="Enter your email"
+              disabled={isLoading}
+            />
+          </div>
 
           <div className="form-group">
             <label htmlFor="password">Password</label>
@@ -100,6 +130,7 @@ const Auth = () => {
               onChange={handleChange}
               required
               placeholder="Enter your password"
+              disabled={isLoading}
             />
           </div>
 
@@ -114,12 +145,13 @@ const Auth = () => {
                 onChange={handleChange}
                 required
                 placeholder="Confirm your password"
+                disabled={isLoading}
               />
             </div>
           )}
 
-          <button type="submit" className="auth-submit-btn">
-            {isSignup ? 'Sign Up' : 'Log In'}
+          <button type="submit" className="auth-submit-btn" disabled={isLoading}>
+            {isLoading ? 'Please wait...' : (isSignup ? 'Sign Up' : 'Log In')}
           </button>
         </form>
 
@@ -129,7 +161,11 @@ const Auth = () => {
             <button
               type="button"
               className="switch-btn"
-              onClick={() => setIsSignup(!isSignup)}
+              onClick={() => {
+                setIsSignup(!isSignup);
+                setError('');
+              }}
+              disabled={isLoading}
             >
               {isSignup ? 'Log In' : 'Sign Up'}
             </button>
@@ -141,4 +177,3 @@ const Auth = () => {
 };
 
 export default Auth;
-

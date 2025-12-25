@@ -7,6 +7,8 @@ CREATE TABLE Account_Statuses (
     StatusName VARCHAR(50) NOT NULL UNIQUE
 );
 
+INSERT INTO Account_Statuses (StatusName) VALUES ('Active'), ('Inactive'), ('Suspended');
+
 CREATE TABLE Users (
     UserID SERIAL PRIMARY KEY,
     Email VARCHAR(255) NOT NULL UNIQUE,

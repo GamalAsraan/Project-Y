@@ -6,8 +6,11 @@ export const UserProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [blockedUsers, setBlockedUsers] = useState([]);
 
-  const login = (userData) => {
+  const login = (userData, token) => {
     setCurrentUser(userData);
+    if (token) {
+      localStorage.setItem('token', token);
+    }
     // Load blocked users from localStorage or API
     const savedBlocked = localStorage.getItem(`blockedUsers_${userData.id}`);
     if (savedBlocked) {
@@ -15,9 +18,37 @@ export const UserProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    setCurrentUser(null);
-    setBlockedUsers([]);
+  const logout = async () => {
+    try {
+      // Call logout API
+      const { logout: logoutApi } = await import('../services/auth');
+      await logoutApi();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear state and storage regardless of API call result
+      setCurrentUser(null);
+      setBlockedUsers([]);
+      localStorage.removeItem('token');
+    }
+  };
+
+  const checkAuth = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const { getCurrentUser } = await import('../services/auth');
+      const response = await getCurrentUser();
+      setCurrentUser(response.user);
+      return response.user;
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      localStorage.removeItem('token');
+      return null;
+    }
   };
 
   const updateProfile = (updates) => {
@@ -29,7 +60,7 @@ export const UserProvider = ({ children }) => {
 
   const blockUser = (userId) => {
     if (!currentUser) return;
-    
+
     const updated = [...blockedUsers, userId];
     setBlockedUsers(updated);
     // Save to localStorage
@@ -38,7 +69,7 @@ export const UserProvider = ({ children }) => {
 
   const unblockUser = (userId) => {
     if (!currentUser) return;
-    
+
     const updated = blockedUsers.filter(id => id !== userId);
     setBlockedUsers(updated);
     // Save to localStorage
@@ -50,15 +81,16 @@ export const UserProvider = ({ children }) => {
   };
 
   return (
-    <UserContext.Provider value={{ 
-      currentUser, 
-      login, 
-      logout, 
+    <UserContext.Provider value={{
+      currentUser,
+      login,
+      logout,
       updateProfile,
       blockUser,
       unblockUser,
       isUserBlocked,
-      blockedUsers
+      blockedUsers,
+      checkAuth
     }}>
       {children}
     </UserContext.Provider>
