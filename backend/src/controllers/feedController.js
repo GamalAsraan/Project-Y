@@ -26,12 +26,12 @@ const getHybridFeed = async (req, res) => {
         if (followCount === 0) {
             // CASE A: COLD START (Interests Only) - Cursor Pagination
             const query = `
-        SELECT DISTINCT P.PostID, P.ContentBody, P.CreatedAt, U.UsernameUnique, Pr.DisplayName, Pr.AvatarURL, 
+        SELECT DISTINCT P.PostID, P.ContentBody, P.ImageURL, P.CreatedAt, U.UsernameUnique, Pr.DisplayName, Pr.AvatarURL, 
                PC.LikeCount, PC.CommentCount, PC.RepostCount, 'Interest' as SourceType
         FROM Posts P
         JOIN Users U ON P.UserID = U.UserID
         JOIN Profiles Pr ON U.UserID = Pr.UserID
-        JOIN Post_Counters PC ON P.PostID = PC.PostID
+        LEFT JOIN Post_Counters PC ON P.PostID = PC.PostID
         JOIN Post_Hashtags PH ON P.PostID = PH.PostID
         JOIN Hashtags H ON PH.HashtagID = H.HashtagID
         JOIN Interests I ON I.InterestName = H.TagName
@@ -42,12 +42,12 @@ const getHybridFeed = async (req, res) => {
         LIMIT $3
       `;
             const result = await pool.query(query, [userId, cursor, limit]);
-            
+
             // Get next cursor (timestamp of last post)
-            const nextCursor = result.rows.length > 0 
-                ? result.rows[result.rows.length - 1].createdat 
+            const nextCursor = result.rows.length > 0
+                ? result.rows[result.rows.length - 1].createdat
                 : null;
-            
+
             return res.json({
                 posts: result.rows,
                 nextCursor,
@@ -62,12 +62,12 @@ const getHybridFeed = async (req, res) => {
 
             // Query 1: Friends (Sorted by Time) - Cursor Pagination
             const friendsQuery = `
-        SELECT P.PostID, P.ContentBody, P.CreatedAt, U.UsernameUnique, Pr.DisplayName, Pr.AvatarURL, 
+        SELECT P.PostID, P.ContentBody, P.ImageURL, P.CreatedAt, U.UsernameUnique, Pr.DisplayName, Pr.AvatarURL, 
                PC.LikeCount, PC.CommentCount, PC.RepostCount, 'Followed' as SourceType
         FROM Posts P
         JOIN Users U ON P.UserID = U.UserID
         JOIN Profiles Pr ON U.UserID = Pr.UserID
-        JOIN Post_Counters PC ON P.PostID = PC.PostID
+        LEFT JOIN Post_Counters PC ON P.PostID = PC.PostID
         JOIN Follows F ON P.UserID = F.FollowingUserID
         WHERE F.FollowerUserID = $1
         AND P.CreatedAt < $2
@@ -77,12 +77,12 @@ const getHybridFeed = async (req, res) => {
 
             // Query 2: Interests (Sorted by Popularity/Time) - Cursor Pagination
             const interestsQuery = `
-        SELECT DISTINCT P.PostID, P.ContentBody, P.CreatedAt, U.UsernameUnique, Pr.DisplayName, Pr.AvatarURL, 
+        SELECT DISTINCT P.PostID, P.ContentBody, P.ImageURL, P.CreatedAt, U.UsernameUnique, Pr.DisplayName, Pr.AvatarURL, 
                PC.LikeCount, PC.CommentCount, PC.RepostCount, 'Interest' as SourceType
         FROM Posts P
         JOIN Users U ON P.UserID = U.UserID
         JOIN Profiles Pr ON U.UserID = Pr.UserID
-        JOIN Post_Counters PC ON P.PostID = PC.PostID
+        LEFT JOIN Post_Counters PC ON P.PostID = PC.PostID
         JOIN Post_Hashtags PH ON P.PostID = PH.PostID
         JOIN Hashtags H ON PH.HashtagID = H.HashtagID
         JOIN Interests I ON I.InterestName = H.TagName
@@ -105,8 +105,8 @@ const getHybridFeed = async (req, res) => {
             const shuffled = shuffleArray(combined);
 
             // Get next cursor (timestamp of last post)
-            const nextCursor = shuffled.length > 0 
-                ? shuffled[shuffled.length - 1].createdat 
+            const nextCursor = shuffled.length > 0
+                ? shuffled[shuffled.length - 1].createdat
                 : null;
 
             return res.json({

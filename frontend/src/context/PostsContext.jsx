@@ -21,10 +21,12 @@ export const PostsProvider = ({ children }) => {
             displayName: post.displayname
           },
           text: post.contentbody,
+          image: post.imageurl,
           timestamp: post.createdat,
           likes: post.likecount || 0,
           reposts: post.repostcount || 0,
-          comments: post.commentcount || 0,
+          commentCount: post.commentcount || 0,
+          comments: [], // Initialize empty, fetch on demand
           liked: false // TODO: Check if liked by current user
         }));
         setPosts(formattedPosts);
@@ -40,7 +42,26 @@ export const PostsProvider = ({ children }) => {
 
   const addPost = async (postData) => {
     try {
-      const newPost = await createPost(postData.text, postData.image);
+      const rawPost = await createPost(postData.text, postData.image);
+
+      const newPost = {
+        id: rawPost.postid,
+        user: {
+          id: rawPost.userid,
+          username: rawPost.usernameunique || 'Unknown',
+          avatar: rawPost.avatarurl || null,
+          displayName: rawPost.displayname
+        },
+        text: rawPost.contentbody,
+        image: rawPost.imageurl,
+        timestamp: rawPost.createdat,
+        likes: rawPost.likecount || 0,
+        reposts: rawPost.repostcount || 0,
+        commentCount: rawPost.commentcount || 0,
+        comments: [],
+        liked: false
+      };
+
       setPosts((prev) => [newPost, ...prev]);
     } catch (err) {
       console.error(err);
@@ -96,6 +117,7 @@ export const PostsProvider = ({ children }) => {
       post.id === postId
         ? {
           ...post,
+          commentCount: (post.commentCount || 0) + 1,
           comments: [...(post.comments || []), comment]
         }
         : post

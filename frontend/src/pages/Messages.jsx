@@ -1,89 +1,84 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import './Messages.css';
 
 const Messages = () => {
   const { currentUser } = useUser();
+  const [searchParams] = useSearchParams();
   const [activeChat, setActiveChat] = useState(null);
   const [messageInput, setMessageInput] = useState('');
   const [messages, setMessages] = useState({});
   const [chats, setChats] = useState([]);
+  const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef(null);
 
-  // Initialize chats with mock data
+  // Fetch conversations
   useEffect(() => {
-    // TODO: Replace with actual API call
-    const mockChats = [
-      {
-        id: 1,
-        user: {
-          id: 2,
-          username: 'janedoe',
-          avatar: null
-        },
-        lastMessage: 'Hey, how are you doing?',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        unread: 2
-      },
-      {
-        id: 2,
-        user: {
-          id: 3,
-          username: 'bobsmith',
-          avatar: null
-        },
-        lastMessage: 'Thanks for the help earlier!',
-        timestamp: new Date(Date.now() - 7200000).toISOString(),
-        unread: 0
-      },
-      {
-        id: 3,
-        user: {
-          id: 4,
-          username: 'alicejones',
-          avatar: null
-        },
-        lastMessage: 'See you tomorrow!',
-        timestamp: new Date(Date.now() - 86400000).toISOString(),
-        unread: 1
+    if (!currentUser) return;
+
+    const fetchConversations = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+        const res = await fetch(`${API_URL}/messages`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error('Failed to fetch conversations');
+
+        const data = await res.json();
+        setChats(data);
+
+        // Check for conversationId in URL
+        const conversationId = searchParams.get('conversationId');
+        if (conversationId) {
+          const chat = data.find(c => c.id === parseInt(conversationId));
+          if (chat) {
+            setActiveChat(chat);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching conversations:', error);
+      } finally {
+        setLoading(false);
       }
-    ];
-
-    setChats(mockChats);
-
-    // Initialize messages for each chat
-    const initialMessages = {
-      1: [
-        {
-          id: 1,
-          text: 'Hey, how are you doing?',
-          senderId: 2,
-          senderUsername: 'janedoe',
-          timestamp: new Date(Date.now() - 3600000).toISOString()
-        }
-      ],
-      2: [
-        {
-          id: 1,
-          text: 'Thanks for the help earlier!',
-          senderId: 3,
-          senderUsername: 'bobsmith',
-          timestamp: new Date(Date.now() - 7200000).toISOString()
-        }
-      ],
-      3: [
-        {
-          id: 1,
-          text: 'See you tomorrow!',
-          senderId: 4,
-          senderUsername: 'alicejones',
-          timestamp: new Date(Date.now() - 86400000).toISOString()
-        }
-      ]
     };
 
-    setMessages(initialMessages);
-  }, []);
+    fetchConversations();
+  }, [currentUser, searchParams]);
+
+  // Fetch messages for active chat
+  useEffect(() => {
+    if (!activeChat) return;
+
+    const fetchMessages = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+        const res = await fetch(`${API_URL}/messages/${activeChat.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) throw new Error('Failed to fetch messages');
+
+        const data = await res.json();
+        setMessages(prev => ({
+          ...prev,
+          [activeChat.id]: data
+        }));
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+      }
+    };
+
+    fetchMessages();
+    // Poll for new messages every 5 seconds (simple real-time)
+    const interval = setInterval(fetchMessages, 5000);
+    return () => clearInterval(interval);
+  }, [activeChat]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -93,6 +88,7 @@ const Messages = () => {
   }, [messages, activeChat]);
 
   const formatTime = (timestamp) => {
+    if (!timestamp) return '';
     const date = new Date(timestamp);
     const now = new Date();
     const diff = now - date;
@@ -119,40 +115,73 @@ const Messages = () => {
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   };
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!messageInput.trim() || !activeChat || !currentUser) return;
 
+    const tempId = Date.now();
+    const text = messageInput.trim();
+
+    // Optimistic update
     const newMessage = {
-      id: Date.now(),
-      text: messageInput.trim(),
+      id: tempId,
+      text: text,
       senderId: currentUser.id,
       senderUsername: currentUser.username,
       timestamp: new Date().toISOString()
     };
 
-    // Add message to the chat
     setMessages(prev => ({
       ...prev,
       [activeChat.id]: [...(prev[activeChat.id] || []), newMessage]
     }));
 
-    // Update chat's last message and timestamp
-    setChats(prev => prev.map(chat => 
-      chat.id === activeChat.id
-        ? {
-            ...chat,
-            lastMessage: newMessage.text,
-            timestamp: newMessage.timestamp,
-            unread: 0
-          }
-        : chat
-    ));
-
-    // Clear input
     setMessageInput('');
 
-    // TODO: Send message to backend API
+    try {
+      const token = localStorage.getItem('token');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+      const res = await fetch(`${API_URL}/messages`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          conversationId: activeChat.id,
+          text: text
+        })
+      });
+
+      if (!res.ok) throw new Error('Failed to send message');
+
+      const savedMessage = await res.json();
+
+      // Update message with real ID and timestamp
+      setMessages(prev => ({
+        ...prev,
+        [activeChat.id]: prev[activeChat.id].map(m =>
+          m.id === tempId ? savedMessage : m
+        )
+      }));
+
+      // Update chat list preview
+      setChats(prev => prev.map(chat =>
+        chat.id === activeChat.id
+          ? {
+            ...chat,
+            lastMessage: savedMessage.text,
+            timestamp: savedMessage.timestamp,
+            unread: 0
+          }
+          : chat
+      ));
+
+    } catch (error) {
+      console.error('Error sending message:', error);
+      // Revert optimistic update on error (optional, but good UX)
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -164,6 +193,14 @@ const Messages = () => {
 
   const activeMessages = activeChat ? (messages[activeChat.id] || []) : [];
 
+  if (loading) {
+    return (
+      <div className="messages-container">
+        <div className="messages-loading">Loading conversations...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="messages-container">
       <div className="messages-sidebar">
@@ -171,35 +208,39 @@ const Messages = () => {
           <h2>Messages</h2>
         </div>
         <div className="chat-list">
-          {chats.map(chat => (
-            <div
-              key={chat.id}
-              className={`chat-preview ${activeChat?.id === chat.id ? 'active' : ''}`}
-              onClick={() => setActiveChat(chat)}
-            >
-              <div className="chat-avatar">
-                {chat.user.avatar ? (
-                  <img src={chat.user.avatar} alt={chat.user.username} />
-                ) : (
-                  <div className="chat-avatar-placeholder">
-                    {chat.user.username[0].toUpperCase()}
-                  </div>
-                )}
-              </div>
-              <div className="chat-info">
-                <div className="chat-header-row">
-                  <span className="chat-username">{chat.user.username}</span>
-                  <span className="chat-timestamp">{formatTime(chat.timestamp)}</span>
-                </div>
-                <div className="chat-message-row">
-                  <p className="chat-last-message">{chat.lastMessage}</p>
-                  {chat.unread > 0 && (
-                    <span className="chat-unread-badge">{chat.unread}</span>
+          {chats.length === 0 ? (
+            <div className="chat-list-empty">No conversations yet</div>
+          ) : (
+            chats.map(chat => (
+              <div
+                key={chat.id}
+                className={`chat-preview ${activeChat?.id === chat.id ? 'active' : ''}`}
+                onClick={() => setActiveChat(chat)}
+              >
+                <div className="chat-avatar">
+                  {chat.user.avatar ? (
+                    <img src={chat.user.avatar} alt={chat.user.username} />
+                  ) : (
+                    <div className="chat-avatar-placeholder">
+                      {chat.user.username[0].toUpperCase()}
+                    </div>
                   )}
                 </div>
+                <div className="chat-info">
+                  <div className="chat-header-row">
+                    <span className="chat-username">{chat.user.username}</span>
+                    <span className="chat-timestamp">{formatTime(chat.timestamp)}</span>
+                  </div>
+                  <div className="chat-message-row">
+                    <p className="chat-last-message">{chat.lastMessage || 'Start a conversation'}</p>
+                    {chat.unread > 0 && (
+                      <span className="chat-unread-badge">{chat.unread}</span>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
@@ -272,7 +313,7 @@ const Messages = () => {
                 onKeyPress={handleKeyPress}
                 disabled={!currentUser}
               />
-              <button 
+              <button
                 type="submit"
                 className="chat-send-btn"
                 disabled={!messageInput.trim() || !currentUser}

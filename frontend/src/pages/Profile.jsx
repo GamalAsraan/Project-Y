@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { usePosts } from '../context/PostsContext';
 import PostCard from '../components/PostCard';
@@ -8,7 +8,8 @@ import './Profile.css';
 
 const Profile = () => {
   const { userId } = useParams();
-  const { currentUser, updateProfile, blockUser, unblockUser, isUserBlocked, logout } = useUser();
+  const navigate = useNavigate();
+  const { currentUser, updateProfile, blockUser, unblockUser, isUserBlocked, logout, loading: authLoading } = useUser();
   const { posts, loading: postsLoading, likePost, addPost } = usePosts();
   const [profileUser, setProfileUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -28,11 +29,23 @@ const Profile = () => {
   }, [userId, currentUser, profileUser]);
 
   useEffect(() => {
+    if (authLoading) return;
+
     const fetchProfile = async () => {
       setLoading(true);
       try {
         const profileId = userId === 'me' ? (currentUser?.id) : userId;
-        if (!profileId) return;
+
+        if (!profileId) {
+          // If userId is 'me' but no currentUser (and not loading), we are not logged in
+          if (userId === 'me') {
+            // Redirect to login or handle as error
+            // For now, let's just stop loading
+            setLoading(false);
+            return;
+          }
+          return;
+        }
 
         const token = localStorage.getItem('token');
         const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -64,7 +77,8 @@ const Profile = () => {
           following: profileData.followingcount || 0,
           location: '', // Not in DB yet
           birthDate: '', // Not in DB yet
-          is_following: profileData.is_following
+          is_following: profileData.is_following,
+          is_followed_by: profileData.is_followed_by
         };
 
         setProfileUser(mappedProfile);
@@ -86,6 +100,7 @@ const Profile = () => {
             displayName: post.displayname
           },
           text: post.contentbody,
+          image: post.imageurl,
           timestamp: post.createdat,
           likes: post.likecount || 0,
           reposts: post.repostcount || 0,
@@ -93,11 +108,6 @@ const Profile = () => {
           liked: false
         }));
 
-        // We can set these to a local state or just rely on the context if we want global posts
-        // But for profile, we usually want specific user posts.
-        // The original code used a mix. Let's override the userPosts memo logic with this data.
-        // Actually, the original code used `getUserPosts` helper. 
-        // We should probably store these fetched posts in a state.
         setFetchedUserPosts(formattedPosts);
       } catch (error) {
         console.error('Error fetching profile:', error);
@@ -107,7 +117,7 @@ const Profile = () => {
     };
 
     fetchProfile();
-  }, [userId, currentUser]);
+  }, [userId, currentUser, authLoading]);
 
   // We need a state for userPosts since we are fetching them now
   const [fetchedUserPosts, setFetchedUserPosts] = useState([]);
@@ -215,7 +225,32 @@ const Profile = () => {
     // We need to add logout to the destructuring.
   };
 
-  if (loading || postsLoading) {
+  const handleMessage = async () => {
+    if (!currentUser) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+      const res = await fetch(`${API_URL}/messages/start`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ targetUserId: profileUser.id })
+      });
+
+      if (!res.ok) throw new Error('Failed to start conversation');
+
+      const data = await res.json();
+      navigate(`/messages?conversationId=${data.conversationId}`);
+    } catch (error) {
+      console.error('Message error:', error);
+    }
+  };
+
+  if (loading || postsLoading || authLoading) {
     return (
       <div className="profile-container">
         <div className="profile-loading">Loading profile...</div>
@@ -263,9 +298,11 @@ const Profile = () => {
                     className={`profile-follow-btn ${profileUser.is_following ? 'following' : ''}`}
                     onClick={handleFollow}
                   >
-                    {profileUser.is_following ? 'Following' : 'Follow'}
+                    {profileUser.is_following
+                      ? 'Following'
+                      : (profileUser.is_followed_by ? 'Follow Back' : 'Follow')}
                   </button>
-                  <button className="profile-message-btn">
+                  <button className="profile-message-btn" onClick={handleMessage}>
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                     </svg>

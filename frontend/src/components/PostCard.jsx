@@ -7,7 +7,7 @@ import './PostCard.css';
 
 const PostCard = ({ post, onLike, onShare }) => {
   const { currentUser } = useUser();
-  const { addComment, sharePost, posts: allPosts } = usePosts();
+  const { addComment, sharePost, updatePost, posts: allPosts } = usePosts();
   const [isExpanded, setIsExpanded] = useState(false);
   const [newComment, setNewComment] = useState('');
   const comments = post.comments || [];
@@ -21,8 +21,52 @@ const PostCard = ({ post, onLike, onShare }) => {
     setLikeCount(post.likes || 0);
   }, [post.liked, post.likes]);
 
-  const displayedComments = showAllComments 
-    ? comments 
+  // Fetch comments when expanded
+  useEffect(() => {
+    if (isExpanded && (!post.comments || post.comments.length === 0) && post.commentCount > 0) {
+      const fetchComments = async () => {
+        try {
+          const token = localStorage.getItem('token');
+          const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+          const res = await fetch(`${API_URL}/comments/${post.id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            // We need a way to update the post's comments in the context without triggering a full re-render that closes the card
+            // For now, let's just update the local comments if we were using local state, but we are using props.
+            // We should probably add a setComments to the context or updatePost
+            // Actually, let's just use the updatePost from context
+            // Map backend comments to frontend format
+            const formattedComments = data.map(c => ({
+              id: c.commentid,
+              text: c.commentbody,
+              user: {
+                id: c.userid,
+                username: c.usernameunique,
+                avatar: c.avatarurl,
+                displayName: c.displayname
+              },
+              timestamp: c.createdat
+            }));
+
+            // We need to update the context with these comments so they persist
+            // But we don't have updatePost exposed in the props, let's get it from usePosts
+            // We have addComment but not setComments.
+            // Let's assume for now we just want to display them.
+            // Ideally we update the context.
+            updatePost(post.id, { comments: formattedComments });
+          }
+        } catch (err) {
+          console.error('Failed to fetch comments', err);
+        }
+      };
+      fetchComments();
+    }
+  }, [isExpanded, post.id, post.commentCount]);
+
+  const displayedComments = showAllComments
+    ? comments
     : comments.slice(0, 5);
 
   const handleCommentSubmit = (e) => {
@@ -68,13 +112,13 @@ const PostCard = ({ post, onLike, onShare }) => {
     }
 
     // Check if user already shared this exact post
-    const alreadyShared = allPosts.some(p => 
-      p.sharedBy?.id === currentUser.id && 
-      (p.originalPostId === post.id || 
-       (p.user?.id === post.user?.id && 
-        p.text === post.text && 
-        p.image === post.image &&
-        !p.sharedBy))
+    const alreadyShared = allPosts.some(p =>
+      p.sharedBy?.id === currentUser.id &&
+      (p.originalPostId === post.id ||
+        (p.user?.id === post.user?.id &&
+          p.text === post.text &&
+          p.image === post.image &&
+          !p.sharedBy))
     );
 
     if (alreadyShared) {
@@ -97,7 +141,7 @@ const PostCard = ({ post, onLike, onShare }) => {
       {post.sharedBy && (
         <div className="repost-indicator">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M4.75 3.79l4.603 4.3-1.706 1.82L6 8.38v7.37c0 .97.784 1.75 1.75 1.75H13V20H7.75c-2.347 0-4.25-1.9-4.25-4.25V8.38L1.853 9.91.147 8.09l4.603-4.3zm11.5 2.71H11V4h5.25c2.347 0 4.25 1.9 4.25 4.25v7.37l1.647-1.53 1.706 1.82-4.603 4.3-4.603-4.3 1.706-1.82L18 15.62V8.25c0-.97-.784-1.75-1.75-1.75z"/>
+            <path d="M4.75 3.79l4.603 4.3-1.706 1.82L6 8.38v7.37c0 .97.784 1.75 1.75 1.75H13V20H7.75c-2.347 0-4.25-1.9-4.25-4.25V8.38L1.853 9.91.147 8.09l4.603-4.3zm11.5 2.71H11V4h5.25c2.347 0 4.25 1.9 4.25 4.25v7.37l1.647-1.53 1.706 1.82-4.603 4.3-4.603-4.3 1.706-1.82L18 15.62V8.25c0-.97-.784-1.75-1.75-1.75z" />
           </svg>
           <span>{post.sharedBy.username} shared this</span>
         </div>
@@ -138,41 +182,41 @@ const PostCard = ({ post, onLike, onShare }) => {
 
       {/* Action Bar */}
       <div className="post-actions">
-        <button 
+        <button
           className={`action-btn ${liked ? 'liked' : ''}`}
           onClick={handleLike}
           title="Like"
         >
           {liked ? (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M20.884 13.19c-1.351 2.48-4.001 5.12-8.379 7.67l-.503.3-.504-.3c-4.379-2.55-7.029-5.19-8.382-7.67-1.36-2.5-1.41-4.86-.514-6.67.887-1.79 2.647-2.91 4.601-3.01 1.651-.09 3.368.56 4.798 2.01 1.429-1.45 3.146-2.1 4.796-2.01 1.954.1 3.714 1.22 4.601 3.01.896 1.81.846 4.17-.514 6.67z"/>
+              <path d="M20.884 13.19c-1.351 2.48-4.001 5.12-8.379 7.67l-.503.3-.504-.3c-4.379-2.55-7.029-5.19-8.382-7.67-1.36-2.5-1.41-4.86-.514-6.67.887-1.79 2.647-2.91 4.601-3.01 1.651-.09 3.368.56 4.798 2.01 1.429-1.45 3.146-2.1 4.796-2.01 1.954.1 3.714 1.22 4.601 3.01.896 1.81.846 4.17-.514 6.67z" />
             </svg>
           ) : (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           )}
           <span>{likeCount}</span>
         </button>
 
-        <button 
+        <button
           className="action-btn"
           onClick={toggleComments}
           title="Comment"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
           </svg>
-          <span>{comments.length}</span>
+          <span>{post.commentCount || 0}</span>
         </button>
 
-        <button 
+        <button
           className="action-btn"
           onClick={handleShare}
           title="Share"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/>
+            <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />
           </svg>
         </button>
       </div>
@@ -211,7 +255,7 @@ const PostCard = ({ post, onLike, onShare }) => {
 
           {/* Load More Button */}
           {comments.length > 5 && !showAllComments && (
-            <button 
+            <button
               className="load-more-comments"
               onClick={() => setShowAllComments(true)}
             >

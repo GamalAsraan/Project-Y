@@ -1,4 +1,12 @@
 const { pool } = require('../db');
+const fs = require('fs');
+const path = require('path');
+
+// Ensure uploads directory exists
+const uploadDir = path.join(__dirname, '../../uploads');
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 // Get socket.io instance (will be set by index.js)
 let io = null;
@@ -8,11 +16,11 @@ const setSocketIO = (socketInstance) => {
 
 const createPost = async (req, res) => {
     const userId = req.user.userId;
-    const { content, original_post_id, media_url } = req.body;
+    const { content, original_post_id, image } = req.body; // Changed media_url to image (base64)
 
     // The "Pure Repost" Fix: Allow null content IF original_post_id is present
-    if (!content && !original_post_id) {
-        return res.status(400).json({ error: 'Post content or original post ID is required' });
+    if (!content && !original_post_id && !image) {
+        return res.status(400).json({ error: 'Post content, image, or original post ID is required' });
     }
 
     const client = await pool.connect();
@@ -20,10 +28,37 @@ const createPost = async (req, res) => {
     try {
         await client.query('BEGIN');
 
+        let imageUrl = null;
+
+        // Handle Image Upload (Base64)
+        if (image) {
+            try {
+                // Expecting data:image/png;base64,iVBORw0KGgo...
+                const matches = image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+
+                if (matches && matches.length === 3) {
+                    const type = matches[1];
+                    const data = matches[2];
+                    const buffer = Buffer.from(data, 'base64');
+
+                    // Generate unique filename
+                    const extension = type.split('/')[1];
+                    const filename = `${Date.now()}-${Math.round(Math.random() * 1E9)}.${extension}`;
+                    const filepath = path.join(uploadDir, filename);
+
+                    fs.writeFileSync(filepath, buffer);
+                    imageUrl = `/uploads/${filename}`;
+                }
+            } catch (imgError) {
+                console.error('Image upload failed:', imgError);
+                // Continue without image or fail? Let's continue but log it.
+            }
+        }
+
         // Insert Post (content can be null for pure reposts)
         const postResult = await client.query(
-            'INSERT INTO Posts (UserID, ContentBody) VALUES ($1, $2) RETURNING PostID, CreatedAt',
-            [userId, content || null]
+            'INSERT INTO Posts (UserID, ContentBody, ImageURL) VALUES ($1, $2, $3) RETURNING PostID, CreatedAt',
+            [userId, content || null, imageUrl]
         );
 
         const postId = postResult.rows[0].postid;
@@ -73,21 +108,22 @@ const createPost = async (req, res) => {
             }
         }
 
-        // Handle media (if provided)
-        // Note: In a real app, you'd upload to S3/Cloudinary and store the URL
-        // For now, we'll just store the media_url if provided
-        if (media_url) {
-            // You might want to add a Post_Media table or store in a JSON column
-            // For now, we'll skip this as it's not in the schema
-        }
-
         await client.query('COMMIT');
 
-        res.status(201).json({
-            postId,
-            originalPostId: original_post_id || null,
-            isRepost: !!original_post_id
-        });
+        // Fetch full post details to return
+        const fullPostResult = await pool.query(`
+            SELECT p.PostID, p.ContentBody, p.ImageURL, p.CreatedAt, 
+                   u.UserID, u.UsernameUnique,
+                   pr.DisplayName, pr.AvatarURL,
+                   pc.LikeCount, pc.RepostCount, pc.CommentCount
+            FROM Posts p
+            JOIN Users u ON p.UserID = u.UserID
+            LEFT JOIN Profiles pr ON u.UserID = pr.UserID
+            LEFT JOIN Post_Counters pc ON p.PostID = pc.PostID
+            WHERE p.PostID = $1
+        `, [postId]);
+
+        res.status(201).json(fullPostResult.rows[0]);
     } catch (error) {
         await client.query('ROLLBACK');
         console.error('Create post error:', error);
@@ -105,6 +141,12 @@ const likePost = async (req, res) => {
 
     try {
         await client.query('BEGIN');
+
+        // Ensure Counter Row Exists
+        await client.query(
+            'INSERT INTO Post_Counters (PostID, LikeCount, RepostCount, CommentCount) VALUES ($1, 0, 0, 0) ON CONFLICT (PostID) DO NOTHING',
+            [postId]
+        );
 
         // Check if already liked
         const check = await client.query(
@@ -197,22 +239,43 @@ const commentPost = async (req, res) => {
     const { postId } = req.params;
     const { content } = req.body;
 
+    const client = await pool.connect();
+
     try {
-        await pool.query(
+        await client.query('BEGIN');
+
+        // Insert Comment
+        await client.query(
             'INSERT INTO Comments (UserID, PostID, CommentBody) VALUES ($1, $2, $3)',
             [userId, postId, content]
         );
+
+        // Update Counter (Ensure row exists first)
+        await client.query(
+            'INSERT INTO Post_Counters (PostID, LikeCount, RepostCount, CommentCount) VALUES ($1, 0, 0, 0) ON CONFLICT (PostID) DO NOTHING',
+            [postId]
+        );
+
+        await client.query(
+            'UPDATE Post_Counters SET CommentCount = CommentCount + 1 WHERE PostID = $1',
+            [postId]
+        );
+
+        await client.query('COMMIT');
         res.status(201).json({ message: 'Comment added' });
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error(error);
         res.status(500).json({ error: 'Failed to add comment' });
+    } finally {
+        client.release();
     }
 };
 
 const getPosts = async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT p.PostID, p.ContentBody, p.CreatedAt, 
+            SELECT p.PostID, p.ContentBody, p.ImageURL, p.CreatedAt, 
                    u.UserID, u.UsernameUnique,
                    pr.DisplayName, pr.AvatarURL,
                    pc.LikeCount, pc.RepostCount, pc.CommentCount
@@ -233,7 +296,7 @@ const getUserPosts = async (req, res) => {
     const { userId } = req.params;
     try {
         const result = await pool.query(`
-            SELECT p.PostID, p.ContentBody, p.CreatedAt, 
+            SELECT p.PostID, p.ContentBody, p.ImageURL, p.CreatedAt, 
                    u.UserID, u.UsernameUnique,
                    pr.DisplayName, pr.AvatarURL,
                    pc.LikeCount, pc.RepostCount, pc.CommentCount
